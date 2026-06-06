@@ -13,7 +13,7 @@ Sistema de reconhecimento facial em tempo real via navegador, com cadastro de pe
 ├── reconhecer_rosto.py   # Detecção e identificação de rostos por frame
 ├── index.html            # Interface web (câmera, cadastro, reconhecimento)
 ├── requirements.txt      # Dependências Python
-└── .env                  # Variáveis de ambiente (não versionar)
+└── .env                  # Variáveis de ambiente
 ```
 
 ---
