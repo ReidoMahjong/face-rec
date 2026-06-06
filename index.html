@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reconhecimento Facial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --blue:        #1d4ed8;
+            --blue-hover:  #1e40af;
+            --blue-light:  #eff6ff;
+            --blue-mid:    #bfdbfe;
+            --white:       #ffffff;
+            --bg:          #f0f4f9;
+            --surface:     #ffffff;
+            --border:      #dde3ee;
+            --text:        #0f172a;
+            --text-muted:  #64748b;
+            --red:         #dc2626;
+            --red-light:   #fef2f2;
+            --green:       #16a34a;
+            --green-light: #dcfce7;
+            --radius:      12px;
+            --font:        'Plus Jakarta Sans', sans-serif;
+            --shadow:      0 1px 4px rgba(15,23,42,0.08);
+            --shadow-md:   0 4px 16px rgba(15,23,42,0.1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 15px;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .logo-icon {
+            width: 30px; height: 30px;
+            background: var(--blue);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        nav {
+            display: flex;
+            gap: 4px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 4px;
+        }
+
+        nav button {
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 16px;
+            border: none;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        nav button.active {
+            background: var(--white);
+            color: var(--blue);
+            font-weight: 600;
+            box-shadow: var(--shadow);
+        }
+
+        nav button:not(.active):hover { color: var(--text); }
+
+        /* ── MAIN ── */
+        main {
+            padding: 20px 24px;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        .page { display: none; animation: fadein 0.2s ease; }
+        .page.active { display: block; }
+
+        @keyframes fadein {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        /* ── CARD ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        /* ── CÂMERA DE RECONHECIMENTO ── */
+        .cam-wrapper {
+            position: relative;
+            background: #0f172a;
+            border-radius: 10px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            width: 100%;
+            max-width: 640px;
+        }
+
+        #video {
+            width: 100%; height: 100%;
+            object-fit: cover; display: block;
+            /* transform controlado por JS dependendo da câmera */
+        }
+
+        #canvas {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+        }
+
+        .cam-overlay {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 12px;
+            background: #0f172a;
+            transition: opacity 0.3s;
+        }
+
+        .cam-overlay.hidden { opacity: 0; pointer-events: none; }
+        .cam-overlay p { font-size: 13px; color: #475569; }
+
+        /* ── BOTÕES ── */
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Botão apenas ícone */
+        .btn-icon {
+            padding: 10px 12px;
+            font-size: 16px;
+        }
+
+        .btn-primary {
+            background: var(--blue);
+            color: var(--white);
+        }
+        .btn-primary:hover:not(:disabled) { background: var(--blue-hover); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-secondary {
+            background: var(--white);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { border-color: #94a3b8; background: var(--bg); }
+
+        /* ── CADASTRO ── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .field { margin-bottom: 14px; }
+
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .field input[type="text"] {
+            width: 100%;
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .field input[type="text"]:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px var(--blue-mid);
+        }
+        .field input[type="text"]::placeholder { color: #cbd5e1; }
+
+        /* ── TABS IMAGEM ── */
+        .img-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: 9px;
+            padding: 4px;
+            margin-bottom: 12px;
+        }
+
+        .img-tab {
+            flex: 1;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 7px 8px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .img-tab.active {
+            background: var(--white);
+            color: var(--blue);
+            box-shadow: var(--shadow);
+        }
+
+        /* ── FILE DROP ── */
+        .file-drop {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 28px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--bg);
+            position: relative;
+        }
+
+        .file-drop:hover, .file-drop.drag {
+            border-color: var(--blue);
+            background: var(--blue-light);
+        }
+
+        .file-drop input[type="file"] {
+            position: absolute; inset: 0;
+            opacity: 0; cursor: pointer;
+        }
+
+        .file-drop .drop-icon { font-size: 28px; margin-bottom: 8px; display: block; }
+        .file-drop p { font-size: 13px; color: var(--text-muted); }
+        .file-name  { margin-top: 8px; font-size: 13px; color: var(--blue); font-weight: 600; }
+
+        /* ── CÂMERA DE CADASTRO ── */
+        .reg-cam-wrapper {
+            position: relative;
+            background: #0f172a;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            width: 100%;
+        }
+
+        #regVideo {
+            width: 100%; height: 100%;
+            object-fit: cover; display: block;
+            /* espelho controlado por JS */
+        }
+
+        .reg-cam-overlay {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 12px;
+            background: #0f172a;
+            transition: opacity 0.3s;
+        }
+        .reg-cam-overlay.hidden { opacity: 0; pointer-events: none; }
+        .reg-cam-overlay p { font-size: 13px; color: #475569; }
+
+        /* ── PREVIEW ── */
+        .preview-box {
+            aspect-ratio: 1;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-box span { font-size: 13px; color: var(--text-muted); }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 20px; right: 16px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 14px; font-weight: 600;
+            z-index: 999;
+            transform: translateY(16px);
+            opacity: 0;
+            transition: all 0.25s;
+            pointer-events: none;
+            box-shadow: var(--shadow-md);
+            max-width: calc(100vw - 32px);
+        }
+        .toast.show    { transform: none; opacity: 1; }
+        .toast.success { background: var(--green); color: #fff; }
+        .toast.error   { background: var(--red);   color: #fff; }
+
+        /* ── SPINNER ── */
+        .loading-spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── MOBILE ── */
+        @media (max-width: 600px) {
+            main { padding: 12px; }
+
+            header { padding: 0 12px; }
+            .logo-text { display: none; }
+
+            .cam-wrapper { max-width: 100%; border-radius: 8px; }
+
+            .btn-row { gap: 8px; }
+            .btn-row .btn:not(.btn-icon) { flex: 1; justify-content: center; }
+
+            .form-grid { grid-template-columns: 1fr; gap: 20px; }
+
+            .card { padding: 16px; }
+
+            nav button { padding: 6px 12px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path stroke-linecap="round" d="M5 20a7 7 0 0114 0"/>
+                    <path stroke-linecap="round" d="M15 8h4M20 6v4"/>
+                </svg>
+            </div>
+            <span class="logo-text">Reconhecimento Facial</span>
+        </div>
+        <nav>
+            <button class="active" onclick="setPage('reconhecer', this)">Reconhecer</button>
+            <button onclick="setPage('cadastrar', this)">Cadastrar</button>
+        </nav>
+    </header>
+
+    <main>
+
+        <!-- ── RECONHECIMENTO ── -->
+        <div class="page active" id="page-reconhecer">
+            <div class="card">
+                <div class="cam-wrapper">
+                    <video id="video" autoplay muted playsinline></video>
+                    <canvas id="canvas"></canvas>
+                    <div class="cam-overlay" id="camOverlay">
+                        <svg width="44" height="44" fill="none" viewBox="0 0 24 24" stroke="#334155" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 10l4.553-2.069A1 1 0 0121 8.867V15.133a1 1 0 01-1.447.936L15 14
+                                   M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+                        </svg>
+                        <p>Câmera inativa</p>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="btnCamera" onclick="toggleCamera()">
+                        Iniciar câmera
+                    </button>
+                    <!-- Botão virar câmera: visível apenas quando ativa -->
+                    <button class="btn btn-secondary btn-icon" id="btnVirar"
+                            onclick="virarCamera()" title="Virar câmera"
+                            style="display:none">🔄</button>
+                    <button class="btn btn-secondary" onclick="recarregarTemplates()">
+                        Recarregar templates
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── CADASTRO ── -->
+        <div class="page" id="page-cadastrar">
+            <div class="card">
+                <div class="form-grid">
+
+                    <!-- Coluna esquerda: dados + imagem -->
+                    <div>
+                        <p class="section-title">Dados</p>
+
+                        <div class="field">
+                            <label>Nome da pessoa</label>
+                            <input type="text" id="nomePessoa" placeholder="Ex: João Silva" />
+                        </div>
+
+                        <div class="field">
+                            <label>Nome do arquivo</label>
+                            <input type="text" id="nomeImagem" placeholder="Ex: joao_frente" />
+                        </div>
+
+                        <div class="field">
+                            <label>Imagem</label>
+
+                            <div class="img-tabs">
+                                <button class="img-tab active" onclick="setImgTab('upload', this)">
+                                    📁 Arquivo
+                                </button>
+                                <button class="img-tab" onclick="setImgTab('camera', this)">
+                                    📷 Câmera
+                                </button>
+                            </div>
+
+                            <!-- Painel de upload -->
+                            <div id="uploadPanel">
+                                <div class="file-drop" id="fileDrop">
+                                    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png"
+                                        onchange="onFileSelect(this)"
+                                        ondragover="event.preventDefault(); this.parentElement.classList.add('drag');"
+                                        ondragleave="this.parentElement.classList.remove('drag')"
+                                        ondrop="this.parentElement.classList.remove('drag')"
+                                    />
+                                    <span class="drop-icon">📤</span>
+                                    <p>Clique ou arraste a imagem aqui</p>
+                                    <p style="margin-top:4px; font-size:12px; color:#94a3b8">JPG, JPEG ou PNG</p>
+                                    <div class="file-name" id="fileName"></div>
+                                </div>
+                            </div>
+
+                            <!-- Painel de câmera -->
+                            <div id="cameraPanel" style="display:none">
+                                <div class="reg-cam-wrapper">
+                                    <video id="regVideo" autoplay muted playsinline></video>
+                                    <div class="reg-cam-overlay" id="regCamOverlay">
+                                        <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#334155" stroke-width="1.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                            <circle cx="12" cy="13" r="3"/>
+                                        </svg>
+                                        <p>Câmera inativa</p>
+                                    </div>
+                                </div>
+                                <div class="btn-row" style="margin-top:12px">
+                                    <button class="btn btn-secondary" id="btnRegCamera" onclick="toggleRegCamera()">
+                                        Abrir câmera
+                                    </button>
+                                    <!-- Virar câmera no cadastro -->
+                                    <button class="btn btn-secondary btn-icon" id="btnRegVirar"
+                                            onclick="virarRegCamera()" title="Virar câmera"
+                                            style="display:none">🔄</button>
+                                    <button class="btn btn-primary" id="btnCapturar" onclick="capturarFoto()" style="display:none">
+                                        📸 Capturar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" id="btnCadastrar" onclick="cadastrar()"
+                                style="margin-top:8px; width:100%; justify-content:center">
+                            Cadastrar pessoa
+                        </button>
+                    </div>
+
+                    <!-- Coluna direita: preview -->
+                    <div>
+                        <p class="section-title">Preview</p>
+                        <div class="preview-box" id="previewBox">
+                            <span>Sem imagem</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API = "https://moocher-encircle-mango.ngrok-free.dev";
+
+        // ── UTILITÁRIOS ─────────────────────────────────────────────────────────
+
+        function toast(msg, tipo = "success") {
+            const el = document.getElementById("toast");
+            el.textContent = msg;
+            el.className = `toast ${tipo} show`;
+            setTimeout(() => el.classList.remove("show"), 3000);
+        }
+
+        function setPage(id, btn) {
+            document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+            document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+            document.getElementById(`page-${id}`).classList.add("active");
+            btn.classList.add("active");
+        }
+
+        // ── RECONHECIMENTO ──────────────────────────────────────────────────────
+
+        let cameraAtiva  = false;
+        let facingMode   = 'user';   // 'user' = frente, 'environment' = traseira
+        let loopId       = null;
+
+        async function toggleCamera() {
+            if (cameraAtiva) pararCamera();
+            else await iniciarCamera();
+        }
+
+        async function iniciarCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode }
+                });
+                const video = document.getElementById("video");
+                video.srcObject = stream;
+
+                // Espelha apenas a câmera frontal (efeito espelho natural)
+                video.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'none';
+
+                await video.play();
+
+                document.getElementById("camOverlay").classList.add("hidden");
+                document.getElementById("btnCamera").textContent = "Parar câmera";
+                document.getElementById("btnVirar").style.display = "";
+                cameraAtiva = true;
+
+                video.addEventListener("loadedmetadata", () => {
+                    const canvas  = document.getElementById("canvas");
+                    canvas.width  = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                });
+
+                loopReconhecimento();
+            } catch (e) {
+                toast("Não foi possível acessar a câmera", "error");
+            }
+        }
+
+        function pararCamera() {
+            const video = document.getElementById("video");
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(t => t.stop());
+                video.srcObject = null;
+            }
+            clearTimeout(loopId);
+            cameraAtiva = false;
+
+            const canvas = document.getElementById("canvas");
+            canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+
+            document.getElementById("camOverlay").classList.remove("hidden");
+            document.getElementById("btnCamera").textContent = "Iniciar câmera";
+            document.getElementById("btnVirar").style.display = "none";
+        }
+
+        async function virarCamera() {
+            facingMode = facingMode === 'user' ? 'environment' : 'user';
+            pararCamera();
+            await iniciarCamera();
+        }
+
+        async function loopReconhecimento() {
+            if (!cameraAtiva) return;
+            await processarFrame();
+            loopId = setTimeout(loopReconhecimento, 400);
+        }
+
+        async function processarFrame() {
+            const video  = document.getElementById("video");
+            const canvas = document.getElementById("canvas");
+            if (video.readyState < 2) return;
+
+            const temp    = document.createElement("canvas");
+            temp.width    = video.videoWidth;
+            temp.height   = video.videoHeight;
+            temp.getContext("2d").drawImage(video, 0, 0);
+
+            temp.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append("frame", blob, "frame.jpg");
+                try {
+                    const res  = await fetch(`${API}/reconhecer`, { method: "POST", body: formData });
+                    const data = await res.json();
+                    desenharResultados(canvas, data.rostos);
+                } catch (e) { /* ignora erros de rede no loop */ }
+            }, "image/jpeg", 0.8);
+        }
+
+        function desenharResultados(canvas, rostos) {
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            rostos.forEach((r) => {
+                const cor = r.conhecido ? "#22c55e" : "#ef4444";
+
+                // Câmera frontal espelhada no CSS → inverte X no canvas para alinhar
+                // Câmera traseira não espelhada → usa coordenadas originais
+                const mx = facingMode === 'user'
+                    ? canvas.width - r.x - r.w
+                    : r.x;
+
+                ctx.strokeStyle = cor;
+                ctx.lineWidth   = 1.5;
+                ctx.strokeRect(mx, r.y, r.w, r.h);
+
+                const c = 12;
+                ctx.lineWidth = 2.5;
+                [
+                    [mx,        r.y,       mx + c,      r.y,       mx,        r.y + c],
+                    [mx + r.w,  r.y,       mx + r.w-c,  r.y,       mx + r.w,  r.y + c],
+                    [mx,        r.y + r.h, mx + c,      r.y + r.h, mx,        r.y + r.h - c],
+                    [mx + r.w,  r.y + r.h, mx + r.w-c,  r.y + r.h, mx + r.w,  r.y + r.h - c],
+                ].forEach(([x0, y0, x1, y1, x2, y2]) => {
+                    ctx.beginPath();
+                    ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+                    ctx.moveTo(x0, y0); ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                });
+
+                const label = r.nome.toUpperCase();
+                ctx.font    = "600 11px 'Plus Jakarta Sans', sans-serif";
+                const textW = ctx.measureText(label).width;
+                ctx.fillStyle = cor;
+                ctx.fillRect(mx - 1, r.y - 22, textW + 12, 20);
+                ctx.fillStyle = r.conhecido ? "#000" : "#fff";
+                ctx.fillText(label, mx + 5, r.y - 7);
+            });
+        }
+
+        function recarregarTemplates() {
+            if (cameraAtiva) {
+                pararCamera();
+                setTimeout(iniciarCamera, 300);
+                toast("Templates recarregados");
+            } else {
+                toast("Inicie a câmera primeiro", "error");
+            }
+        }
+
+        // ── CADASTRO ────────────────────────────────────────────────────────────
+
+        let capturedBlob    = null;
+        let regCameraAtiva  = false;
+        let regFacingMode   = 'user';
+
+        function setImgTab(tab, btn) {
+            document.querySelectorAll(".img-tab").forEach(t => t.classList.remove("active"));
+            btn.classList.add("active");
+
+            if (tab === "upload") {
+                document.getElementById("uploadPanel").style.display = "";
+                document.getElementById("cameraPanel").style.display = "none";
+                stopRegCamera();
+            } else {
+                document.getElementById("uploadPanel").style.display = "none";
+                document.getElementById("cameraPanel").style.display = "";
+            }
+
+            capturedBlob = null;
+            document.getElementById("previewBox").innerHTML = "<span>Sem imagem</span>";
+            document.getElementById("fileName").textContent = "";
+            document.getElementById("fileInput").value = "";
+        }
+
+        function onFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+            capturedBlob = null;
+            document.getElementById("fileName").textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById("previewBox").innerHTML =
+                    `<img src="${e.target.result}" alt="preview">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function toggleRegCamera() {
+            if (regCameraAtiva) stopRegCamera();
+            else await startRegCamera();
+        }
+
+        async function startRegCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: regFacingMode }
+                });
+                const video = document.getElementById("regVideo");
+                video.srcObject = stream;
+                video.style.transform = regFacingMode === 'user' ? 'scaleX(-1)' : 'none';
+                await video.play();
+                document.getElementById("regCamOverlay").classList.add("hidden");
+                document.getElementById("btnRegCamera").textContent = "Parar câmera";
+                document.getElementById("btnRegVirar").style.display = "";
+                document.getElementById("btnCapturar").style.display = "";
+                regCameraAtiva = true;
+            } catch (e) {
+                toast("Não foi possível acessar a câmera", "error");
+            }
+        }
+
+        function stopRegCamera() {
+            const video = document.getElementById("regVideo");
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(t => t.stop());
+                video.srcObject = null;
+            }
+            document.getElementById("regCamOverlay").classList.remove("hidden");
+            document.getElementById("btnRegCamera").textContent = "Abrir câmera";
+            document.getElementById("btnRegVirar").style.display = "none";
+            document.getElementById("btnCapturar").style.display = "none";
+            regCameraAtiva = false;
+        }
+
+        async function virarRegCamera() {
+            regFacingMode = regFacingMode === 'user' ? 'environment' : 'user';
+            stopRegCamera();
+            await startRegCamera();
+        }
+
+        function capturarFoto() {
+            const video = document.getElementById("regVideo");
+            if (video.readyState < 2) return;
+
+            const canvas = document.createElement("canvas");
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0);
+
+            canvas.toBlob((blob) => {
+                capturedBlob = blob;
+                const url = URL.createObjectURL(blob);
+                document.getElementById("previewBox").innerHTML =
+                    `<img src="${url}" alt="foto capturada">`;
+                toast("Foto capturada com sucesso!");
+                stopRegCamera();
+            }, "image/jpeg", 0.92);
+        }
+
+        async function cadastrar() {
+            const nomePessoa = document.getElementById("nomePessoa").value.trim();
+            const nomeImagem = document.getElementById("nomeImagem").value.trim();
+            const file       = document.getElementById("fileInput").files[0];
+            const btn        = document.getElementById("btnCadastrar");
+
+            if (!nomePessoa) return toast("Preencha o nome da pessoa", "error");
+            if (!nomeImagem) return toast("Preencha o nome do arquivo", "error");
+            if (!file && !capturedBlob) return toast("Selecione ou capture uma imagem", "error");
+
+            btn.disabled  = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Enviando...';
+
+            const formData = new FormData();
+            formData.append("nomePessoa", nomePessoa);
+            formData.append("nomeImagem", nomeImagem);
+
+            // Passa o nome do arquivo com extensão para que o servidor
+            // identifique corretamente o formato da imagem
+            if (capturedBlob) {
+                formData.append("imagem", capturedBlob, `${nomeImagem}.jpg`);
+            } else {
+                formData.append("imagem", file, file.name);
+            }
+
+            try {
+                const res  = await fetch(`${API}/cadastrar`, { method: "POST", body: formData });
+                const data = await res.json();
+
+                if (res.ok) {
+                    toast(`${nomePessoa} cadastrado com sucesso!`);
+                    document.getElementById("nomePessoa").value     = "";
+                    document.getElementById("nomeImagem").value     = "";
+                    document.getElementById("fileInput").value      = "";
+                    document.getElementById("fileName").textContent = "";
+                    document.getElementById("previewBox").innerHTML = "<span>Sem imagem</span>";
+                    capturedBlob = null;
+                } else {
+                    toast(data.detail || "Erro ao cadastrar", "error");
+                }
+            } catch (e) {
+                toast("Erro de conexão — verifique a URL da API", "error");
+            }
+
+            btn.disabled  = false;
+            btn.innerHTML = "Cadastrar pessoa";
+        }
+    </script>
+</body>
+</html>
