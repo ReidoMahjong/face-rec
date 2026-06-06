@@ -1,5 +1,5 @@
+import io
 import os
-import shutil
 from datetime import datetime
 
 import face_recognition
@@ -13,8 +13,9 @@ bd = client["rf"]
 imagens = bd["pessoas"]
 
 
-def gerarTemplate(caminhoImagem):
-    imagem = face_recognition.load_image_file(caminhoImagem)
+def gerarTemplate(imagemBytes: bytes):
+    """Gera o encoding facial a partir dos bytes da imagem (sem salvar no disco)."""
+    imagem = face_recognition.load_image_file(io.BytesIO(imagemBytes))
     encodings = face_recognition.face_encodings(imagem)
 
     if len(encodings) == 0:
@@ -25,25 +26,15 @@ def gerarTemplate(caminhoImagem):
     return encodings[0].tolist()
 
 
-def salvarImagem(NomePessoa, nomeImagem, caminhoOrigem):
-    os.makedirs("img", exist_ok=True)
-
-    extensao = os.path.splitext(caminhoOrigem)[1]
-    nomeArquivo = nomeImagem + extensao
-    caminhoDestino = os.path.join("img", nomeArquivo)
-
-    shutil.copy2(caminhoOrigem, caminhoDestino)
-
-    template = gerarTemplate(caminhoDestino)
+def salvarImagem(nomePessoa: str, nomeImagem: str, imagemBytes: bytes):
+    """Gera o template e salva apenas os metadados no MongoDB."""
+    template = gerarTemplate(imagemBytes)
 
     imagens.insert_one(
         {
-            "NomePessoa": NomePessoa,
+            "NomePessoa": nomePessoa,
             "nomeImagem": nomeImagem,
-            "caminho": caminhoDestino,
             "template": template,
             "dataInsercao": datetime.now(),
         }
     )
-
-    return caminhoDestino

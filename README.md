@@ -1,6 +1,6 @@
 # Reconhecimento Facial
 
-Sistema de reconhecimento facial em tempo real via navegador, com cadastro de pessoas e identificação por câmera. O frontend se comunica com uma API Python (FastAPI) que usa `face-recognition` para gerar e comparar templates faciais armazenados no MongoDB.
+Sistema de reconhecimento facial em tempo real via navegador, com cadastro de pessoas e identificação por câmera. O frontend se comunica com uma API Python (FastAPI) que usa `face-recognition` para gerar e comparar templates faciais armazenados no MongoDB. As imagens **não são salvas em disco** — apenas o encoding facial é persistido no banco.
 
 ---
 
@@ -13,8 +13,7 @@ Sistema de reconhecimento facial em tempo real via navegador, com cadastro de pe
 ├── reconhecer_rosto.py   # Detecção e identificação de rostos por frame
 ├── index.html            # Interface web (câmera, cadastro, reconhecimento)
 ├── requirements.txt      # Dependências Python
-├── .env                  # Variáveis de ambiente (não versionar)
-└── img/                  # Imagens cadastradas (gerado automaticamente)
+└── .env                  # Variáveis de ambiente (não versionar)
 ```
 
 ---
@@ -96,14 +95,14 @@ Serve o frontend (`index.html`).
 ---
 
 ### `POST /cadastrar`
-Cadastra uma pessoa com sua imagem facial.
+Cadastra uma pessoa. A imagem é processada em memória — apenas o encoding facial é salvo no banco.
 
 **Form data:**
 
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `nomePessoa` | string | Nome da pessoa |
-| `nomeImagem` | string | Nome base do arquivo de imagem |
+| `nomeImagem` | string | Nome de referência do cadastro |
 | `imagem` | file | Foto (JPG ou PNG, apenas 1 rosto) |
 
 **Respostas:**
@@ -157,12 +156,12 @@ FastAPI (Main.py)
 reconhecer_rosto.py
     ├── OpenCV detecta rostos no frame (Haar Cascade)
     ├── face-recognition gera encoding de cada rosto
-    └── Compara com templates no MongoDB
+    └── Compara com templates armazenados no MongoDB
             │
             └── Retorna nome + coordenadas x, y, w, h
 ```
 
-No cadastro, a imagem é salva em `img/` e o encoding facial é armazenado no MongoDB como array numérico (`template`), evitando reprocessamento a cada requisição.
+No cadastro, a imagem é lida diretamente da memória (sem gravação em disco), o encoding facial é extraído e apenas os metadados são persistidos no MongoDB.
 
 ---
 
@@ -173,8 +172,7 @@ Coleção `pessoas` no banco `rf`:
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `NomePessoa` | string | Nome da pessoa |
-| `nomeImagem` | string | Nome do arquivo |
-| `caminho` | string | Caminho local da imagem |
+| `nomeImagem` | string | Nome de referência do cadastro |
 | `template` | array | Encoding facial (128 valores) |
 | `dataInsercao` | date | Data e hora do cadastro |
 
