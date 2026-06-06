@@ -1,0 +1,27 @@
+# API
+fastapi
+uvicorn[standard]
+python-multipart       # necessário para File/Form no FastAPI
+
+# Reconhecimento facial
+face-recognition       # requer dlib (veja nota abaixo)
+opencv-python
+numpy
+
+# Banco de dados
+pymongo
+
+# Configuração
+python-dotenv
+
+# ---------------------------------------------------------------------------
+# NOTA — dlib
+# O pacote face-recognition depende do dlib, que precisa ser compilado.
+# Em sistemas Linux/Mac, instale antes:
+#   sudo apt install cmake build-essential libopenblas-dev liblapack-dev   (Ubuntu/Debian)
+#   brew install cmake                                                      (macOS)
+#
+# No Windows ou para evitar a compilação, use o wheel pré-compilado:
+#   pip install dlib‑<versão>‑cpXX‑cpXX‑win_amd64.whl
+#   (disponível em: https://github.com/sachadee/Dlib)
+# ---------------------------------------------------------------------------
