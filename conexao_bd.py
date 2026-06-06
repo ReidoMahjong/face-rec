@@ -2,6 +2,7 @@ import io
 import os
 from datetime import datetime
 
+import numpy as np
 import face_recognition
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -13,8 +14,8 @@ bd = client["rf"]
 imagens = bd["pessoas"]
 
 
+"""Gera o encoding facial a partir dos bytes da imagem (sem salvar no disco)."""
 def gerarTemplate(imagemBytes: bytes):
-    """Gera o encoding facial a partir dos bytes da imagem (sem salvar no disco)."""
     imagem = face_recognition.load_image_file(io.BytesIO(imagemBytes))
     encodings = face_recognition.face_encodings(imagem)
 
@@ -25,9 +26,8 @@ def gerarTemplate(imagemBytes: bytes):
 
     return encodings[0].tolist()
 
-
+"""Gera o template e salva apenas os metadados no MongoDB."""
 def salvarImagem(nomePessoa: str, nomeImagem: str, imagemBytes: bytes):
-    """Gera o template e salva apenas os metadados no MongoDB."""
     template = gerarTemplate(imagemBytes)
 
     imagens.insert_one(
@@ -38,3 +38,12 @@ def salvarImagem(nomePessoa: str, nomeImagem: str, imagemBytes: bytes):
             "dataInsercao": datetime.now(),
         }
     )
+
+def carregarTemplates():
+    registros = imagens.find({"template": {"$exists": True}})
+    templates = []
+    for registro in registros:
+        templates.append(
+            {"nome": registro["NomePessoa"], "template": np.array(registro["template"])}
+        )
+    return templates
