@@ -45,7 +45,7 @@ Baixe o wheel pré-compilado do dlib em https://github.com/sachadee/Dlib e insta
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/seu-usuario/seu-repo.git
+git clone https://github.com/ReidoMahjong/face-rec.git
 cd seu-repo
 
 # 2. Crie e ative o ambiente virtual
