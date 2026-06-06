@@ -46,7 +46,7 @@ Baixe o wheel pré-compilado do dlib em https://github.com/sachadee/Dlib e insta
 ```bash
 # 1. Clone o repositório
 git clone https://github.com/ReidoMahjong/face-rec.git
-cd seu-repo
+cd face-rec
 
 # 2. Crie e ative o ambiente virtual
 python -m venv venv
@@ -66,8 +66,6 @@ Crie um arquivo `.env` na raiz do projeto com a string de conexão do MongoDB:
 ```env
 mongo=mongodb+srv://usuario:senha@cluster.mongodb.net/
 ```
-
-> **Atenção:** nunca suba o arquivo `.env` para o repositório. Adicione-o ao `.gitignore`.
 
 ---
 
@@ -95,7 +93,7 @@ Serve o frontend (`index.html`).
 ---
 
 ### `POST /cadastrar`
-Cadastra uma pessoa. A imagem é processada em memória — apenas o encoding facial é salvo no banco.
+Cadastra uma pessoa. A imagem é processada em memória, apenas o encoding facial é salvo no banco.
 
 **Form data:**
 
